@@ -64,27 +64,30 @@ def load_data_large():
     return (X_train, y_train, X_val, y_val)
 
 
+
 def linearForward(input, p):
     """
     :param input: input vector (column vector) WITH bias feature added
     :param p: parameter matrix (alpha/beta) WITH bias parameter added
     :return: output vector
     """
-    pass
+    return np.dot(p, input)
 
 
 def sigmoidForward(a):
     """
     :param a: input vector WITH bias feature added
     """
-    pass
+    return 1/ (1+np.exp(-a))
 
 
 def softmaxForward(b):
     """
     :param b: input vector WITH bias feature added
     """
-    pass
+    # exp_b = np.exp(b - np.max(b))  
+    # return exp_b / np.sum(exp_b)
+    return np.exp(b) / np.sum(np.exp(b))
 
 
 def crossEntropyForward(hot_y, y_hat):
@@ -93,7 +96,7 @@ def crossEntropyForward(hot_y, y_hat):
     :param y_hat: vector of probabilistic distribution for predicted label
     :return: float
     """
-    pass
+    return - (np.sum(hot_y * np.log(y_hat)))/len(hot_y)
 
 
 def NNForward(x, y, alpha, beta):
@@ -106,20 +109,29 @@ def NNForward(x, y, alpha, beta):
     TIP: Check on your dimensions. Did you make sure all bias features are added?
     """
     #  Convert y to one-hot encoding
+    hot_y = np.eye(10)[y]
     # a = # Apply linear transformation
     # z = # Apply sigmoid activation
+    a = linearForward(x,alpha)
+    z = sigmoidForward(a)
 
     # Add bias term to hidden layer output before passing to output layer
     # z_with_bias
-
+    temp = np.array([[1]])  
+    z_with_bias = np.insert(z, 0, temp, axis=0)
     # b = # Forward Pass through output layer using linearForward with augmented z
     # y_hat = # Apply softmax to get probabilities
-
+    b = linearForward(z_with_bias,beta)
+    y_hat = softmaxForward(b)
     # Compute the cross-entropy loss
     # J = 
+    J = crossEntropyForward(hot_y,y_hat)
     
     # return x, a, z_with_bias, b, y_hat, J
-    pass
+    return x, a, z_with_bias, b, y_hat, J
+
+
+   
 
 
 def softmaxBackward(hot_y, y_hat):
@@ -207,14 +219,27 @@ def SGD(tr_x, tr_y, valid_x, valid_y, hidden_units, num_epoch, init_flag, learni
         - valid_entropy (length num_epochs): mean cross-entropy loss for validation data for each epoch
     """
     # Initialize weights
-    
+    if init_flag:
+        al = np.random.uniform(-0.1, 0.1, size=(hidden_units, tr_x.shape[1]))
+        zeros = np.zeros((al.shape[0], 1)) 
+        alpha = np.concatenate((zeros,al), axis=1)
+        bt = np.random.uniform(-0.1, 0.1, size=(max(tr_x)+1, hidden_units))
+        zeros1 = np.zeros((bt.shape[0], 1)) 
+        beta = np.concatenate((zeros1,bt), axis=1)
+    else:
+        alpha = np.zeros((hidden_units, tr_x.shape[1] + 1))
+        beta = np.zeros((np.max(tr_y) + 1, hidden_units + 1))
     # Itarate over epochs
-        
+    for i in range(num_epoch):    
         # Itarate over training data
-        
+        for i,t in enumerate(tr_x):
+            x = np.concatenate((t[:0], [1], t[0:]))
+            x = np.expand_dims(tr_x[i], axis=1)
+            y = tr_y[i]
             # Forward pass for a single training sample
-            
+            x, a, z, b, y_hat, J = NNForward(x,y,alpha,beta)
             # Backward pass for a single training sample
+            grad_alpha, grad_beta, g_y_hat, g_b_no_bias, g_a = NNBackward(x, y, alpha, beta, z, y_hat)
             
             # Update weights
             
